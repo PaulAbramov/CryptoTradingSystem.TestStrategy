@@ -25,13 +25,11 @@ namespace CryptoTradingSystem.TestStrategy
                 .WriteTo.File(loggingfilePath, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
-            Log.Information(_connectionString);
-
             var databaseHandler = new MySQLDatabaseHandler(_connectionString);
 
-            var btcUsdt5minEma = Retry.Do(() => databaseHandler.GetIndicators<EMA>(Enums.Assets.Btcusdt, Enums.TimeFrames.M5, Enums.Indicators.EMA), TimeSpan.FromSeconds(1));
+            var btcUsdt5minEma = Retry.Do(() => databaseHandler.GetIndicators<EMA>(Enums.Assets.Btcusdt, Enums.TimeFrames.M5, Enums.Indicators.EMA, DateTime.Now.AddMonths(-1)), TimeSpan.FromSeconds(1));
 
-            Log.Information(btcUsdt5minEma.FirstOrDefault().AssetName);
+            Log.Information($"{btcUsdt5minEma.FirstOrDefault().AssetName}, {btcUsdt5minEma.FirstOrDefault().CloseTime}");
             
             return "test";
         }
