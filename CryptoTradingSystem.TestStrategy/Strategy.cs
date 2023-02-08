@@ -14,7 +14,7 @@ namespace CryptoTradingSystem.TestStrategy
 {
     public class Strategy : IStrategy
     {
-        public string ExecuteStrategy(string _connectionString)
+        public string ExecuteStrategy(string connectionString)
         {
             IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
             var loggingfilePath = config.GetValue<string>("LoggingLocation");
@@ -25,11 +25,11 @@ namespace CryptoTradingSystem.TestStrategy
                 .WriteTo.File(loggingfilePath, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
-            var databaseHandler = new MySQLDatabaseHandler(_connectionString);
+            var databaseHandler = new MySQLDatabaseHandler(connectionString);
 
-            var btcUsdt5minEma = Retry.Do(() => databaseHandler.GetIndicators<EMA>(Enums.Assets.Btcusdt, Enums.TimeFrames.M5, Enums.Indicators.EMA, DateTime.Now.AddMonths(-1)), TimeSpan.FromSeconds(1));
+            var btcUsdt5MinEma = Retry.Do(() => databaseHandler.GetIndicators<EMA>(Enums.Assets.Btcusdt, Enums.TimeFrames.M5, Enums.Indicators.EMA, DateTime.Now.AddMonths(-1)), TimeSpan.FromSeconds(1));
 
-            Log.Information($"{btcUsdt5minEma.FirstOrDefault().AssetName}, {btcUsdt5minEma.FirstOrDefault().CloseTime}");
+            Log.Information($"{btcUsdt5MinEma.FirstOrDefault().AssetName}, {btcUsdt5MinEma.FirstOrDefault().CloseTime}");
             
             return "test";
         }
