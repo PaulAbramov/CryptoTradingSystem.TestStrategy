@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 
 using CryptoTradingSystem.General.Data;
-using CryptoTradingSystem.General.Database;
-using CryptoTradingSystem.General.Database.Models;
-using CryptoTradingSystem.General.Helper;
 using CryptoTradingSystem.General.Strategy;
 using Microsoft.Extensions.Configuration;
 
@@ -14,8 +11,9 @@ namespace CryptoTradingSystem.TestStrategy
 {
     public class Strategy : IStrategy
     {
-        public string ExecuteStrategy(string connectionString)
+        public StrategyParameter SetupStrategyParameter()
         {
+            #region logging
             IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
             var loggingfilePath = config.GetValue<string>("LoggingLocation");
 
@@ -24,14 +22,21 @@ namespace CryptoTradingSystem.TestStrategy
                 .WriteTo.Console()
                 .WriteTo.File(loggingfilePath, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
+            #endregion
 
-            var databaseHandler = new MySQLDatabaseHandler(connectionString);
+            return new StrategyParameter(
+                assets: new List<Tuple<Enums.TimeFrames, Enums.Assets, Enums.Indicators>>
+                {
+                    Tuple.Create(Enums.TimeFrames.M15, Enums.Assets.Btcusdt, Enums.Indicators.SMA),
+                    Tuple.Create(Enums.TimeFrames.D1, Enums.Assets.Btcusdt, Enums.Indicators.SMA)
+                },
+                timeFrameStart: null,
+                timeFrameEnd: null);
+        }
 
-            var btcUsdt5MinEma = Retry.Do(() => databaseHandler.GetIndicators<EMA>(Enums.Assets.Btcusdt, Enums.TimeFrames.M5, Enums.Indicators.EMA, DateTime.Now.AddMonths(-1)), TimeSpan.FromSeconds(1));
-
-            Log.Information($"{btcUsdt5MinEma.FirstOrDefault().AssetName}, {btcUsdt5MinEma.FirstOrDefault().CloseTime}");
-            
-            return "test";
+        public string ExecuteStrategy()
+        {
+            return string.Empty;
         }
     }
 }
