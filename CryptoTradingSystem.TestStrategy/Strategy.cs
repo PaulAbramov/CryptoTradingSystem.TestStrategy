@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using CryptoTradingSystem.General.Data;
+using CryptoTradingSystem.General.Database.Models;
 using CryptoTradingSystem.General.Strategy;
 using Microsoft.Extensions.Configuration;
 
@@ -19,23 +20,27 @@ namespace CryptoTradingSystem.TestStrategy
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
-                .WriteTo.Console()
-                .WriteTo.File(loggingfilePath, rollingInterval: RollingInterval.Day)
+                .WriteTo.Console(restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.File(loggingfilePath ?? "logs/Strategy.txt", 
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
             #endregion
 
             return new StrategyParameter(
-                assets: new List<Tuple<Enums.TimeFrames, Enums.Assets, Enums.Indicators>>
+                assets: new List<Tuple<Enums.TimeFrames, Enums.Assets, Type>>
                 {
-                    Tuple.Create(Enums.TimeFrames.M15, Enums.Assets.Btcusdt, Enums.Indicators.SMA),
-                    Tuple.Create(Enums.TimeFrames.D1, Enums.Assets.Btcusdt, Enums.Indicators.SMA)
+                    Tuple.Create(Enums.TimeFrames.M15, Enums.Assets.Btcusdt, typeof(SMA)),
+                    Tuple.Create(Enums.TimeFrames.D1, Enums.Assets.Btcusdt, typeof(SMA))
                 },
                 timeFrameStart: null,
                 timeFrameEnd: null);
         }
 
-        public string ExecuteStrategy()
+        public string ExecuteStrategy(List<List<Indicator>> indicators)
         {
+
             return string.Empty;
         }
     }
