@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using CryptoTradingSystem.General.Data;
+﻿using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Database.Models;
 using CryptoTradingSystem.General.Strategy;
 using Microsoft.Extensions.Configuration;
-
 using Serilog;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CryptoTradingSystem.TestStrategy
 {
@@ -18,11 +17,13 @@ namespace CryptoTradingSystem.TestStrategy
                 Tuple.Create(Enums.TimeFrames.M15, Enums.Assets.Btcusdt, typeof(SMA)),
                 Tuple.Create(Enums.TimeFrames.D1, Enums.Assets.Btcusdt, typeof(SMA))
             };
-        
+
+        private StrategyReturnParameter strategyReturnParameter = new();
+
         public StrategyParameter SetupStrategyParameter()
         {
             #region logging
-            
+
             IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
             var loggingfilePath = config.GetValue<string>("LoggingLocation");
 
@@ -30,11 +31,11 @@ namespace CryptoTradingSystem.TestStrategy
                 .MinimumLevel.Debug()
                 .WriteTo.Console(restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information,
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
-                .WriteTo.File(loggingfilePath ?? "logs/Strategy.txt", 
+                .WriteTo.File(loggingfilePath ?? "logs/Strategy.txt",
                     rollingInterval: RollingInterval.Day,
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
-            
+
             #endregion
 
             return new StrategyParameter(
@@ -44,7 +45,7 @@ namespace CryptoTradingSystem.TestStrategy
                 timeFrameEnd: null);
         }
 
-        public Enums.TradeType ExecuteStrategy(List<Indicator> indicators, Enums.TradeStatus status)
+        public StrategyReturnParameter ExecuteStrategy(List<Indicator> indicators, Enums.TradeStatus status)
         {
             foreach (var indicator in indicators)
             {
@@ -53,26 +54,34 @@ namespace CryptoTradingSystem.TestStrategy
                 if (assets.All(x => x.Item1.GetStringValue() != indicator.Interval))
                     throw new ArgumentException($"There is no requested asset with this interval {indicator.Interval}");
             }
-            
+
             var fifteenminute = (SMA)indicators[0];
             var oneHour = (SMA)indicators[1];
 
             if (fifteenminute.SMA5 == null
                 || oneHour.SMA75 == null)
             {
-                return Enums.TradeType.None;
+                return strategyReturnParameter;
             }
 
-            return status switch
+            if (fifteenminute.SMA5 > oneHour.SMA75)
             {
-                // If there is no open trade for this currency pair
-                // If the 15 min SMA is above the 1 day SMA, buy
-                Enums.TradeStatus.Closed when fifteenminute.SMA5 > oneHour.SMA75 => Enums.TradeType.Buy,
-                // If there is an open trade for this currency pair
-                // If the 15 min SMA is below the 1 day SMA, sell
-                Enums.TradeStatus.Open when fifteenminute.SMA5 < oneHour.SMA75 => Enums.TradeType.Sell,
-                _ => Enums.TradeType.None
-            };
+                strategyReturnParameter = new StrategyReturnParameter
+                {
+                    TradeType = Enums.TradeType.Buy,
+                    TradeStatus = Enums.TradeStatus.Open
+                };
+            }
+            else if (fifteenminute.SMA5 < oneHour.SMA75)
+            {
+                strategyReturnParameter = new StrategyReturnParameter
+                {
+                    TradeType = Enums.TradeType.Sell,
+                    TradeStatus = Enums.TradeStatus.Closed
+                };
+            }
+
+            return strategyReturnParameter;
         }
     }
 }
